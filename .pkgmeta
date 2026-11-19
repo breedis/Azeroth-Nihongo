@@ -1,0 +1,12 @@
+# For the BigWigs packager (GitHub Action) once the addon is on GitHub.
+# It zips the repo as AzerothNihongo/ and leaves these out.
+package-as: AzerothNihongo
+
+ignore:
+  - publish
+  - build.ps1
+  - CURSEFORGE.md
+  - PROJECT_NOTES.md
+  - tools
+  - .claude
+  - .github

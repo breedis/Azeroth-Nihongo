@@ -1,0 +1,14 @@
+<Bindings>
+  <Binding name="AZEROTHNIHONGO_TOGGLE" header="AZEROTHNIHONGO" category="ADDONS">
+    AzerothNihongo_Toggle()
+  </Binding>
+  <Binding name="AZEROTHNIHONGO_QUIZ" category="ADDONS">
+    AzerothNihongo_ToggleQuiz()
+  </Binding>
+  <Binding name="AZEROTHNIHONGO_SPEAK" category="ADDONS">
+    AzerothNihongo_SpeakHovered()
+  </Binding>
+  <Binding name="AZEROTHNIHONGO_LEXICON" category="ADDONS">
+    AzerothNihongo_ToggleLexicon()
+  </Binding>
+</Bindings>
