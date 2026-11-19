@@ -2,6 +2,7 @@ local _, ns = ...
 
 local panel = CreateFrame("Frame")
 panel.name = "Azeroth Nihongo"
+panel:Hide() -- so OnShow runs the first time the settings show it
 
 local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
 title:SetPoint("TOPLEFT", 16, -16)
@@ -28,7 +29,7 @@ local function AddCheck(key, label, getTable)
     ns.Refresh()
   end)
   checks[#checks + 1] = cb
-  y = y - 26
+  y = y - 24
 end
 
 AddCheck("enabled", "Enabled (also: /jp, the JP button or a key binding)")
@@ -47,6 +48,8 @@ AddCheck("speakOnHover", "Say hovered words out loud")
 AddCheck("collectMissing", "Collect words that have no translation yet (/jp missing)")
 AddCheck("speak", "Quiz: say the word after answering", function() return ns.DB.quiz end)
 AddCheck("autoNext", "Quiz: go to the next question by itself after a correct answer", function() return ns.DB.quiz end)
+AddCheck("writeNewKana", "Quiz: write a new kana before it is asked the first time", function() return ns.DB.quiz end)
+AddCheck("writeNewKanji", "Quiz: write the kanji of a new word before it is asked the first time", function() return ns.DB.quiz end)
 AddCheck("kanaDakuten", "Kana quiz: include dakuten (ga, za, da, ba, pa ...)", function() return ns.DB.quiz end)
 AddCheck("kanaCombos", "Kana quiz: include combos (kya, sha, cho ...)", function() return ns.DB.quiz end)
 

@@ -590,14 +590,67 @@ local function ShowQuestion(q)
   end
 end
 
+-- Signs in the question that you have never met: never asked and never written.
+local function NewSigns(q)
+  local out = {}
+  local w = ns.DB.write or {}
+  if q.kana then
+    if Q.writeNewKana and not Q.kana[q.target] then
+      for ch in q.target:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+        if not w[ch] and ns.CanWrite and ns.CanWrite(ch) then out[#out + 1] = ch end
+      end
+    end
+  elseif Q.writeNewKanji and not Q.words[q.target] then
+    local e = ns.dict[q.target]
+    if e and e.kanji then
+      for _, ch in ipairs(ns.KanjiIn(e.kanji)) do
+        if not w[ch] and ns.CanWrite and ns.CanWrite(ch) then out[#out + 1] = ch end
+      end
+    end
+  end
+  return out
+end
+
+-- Shows the question with its answers hidden while the new signs are written.
+local function ShowIntro(q, chars)
+  ShowQuestion(q)
+  q.intro = true
+  for _, b in ipairs(answers) do b:Hide() end
+  local reads = {}
+  for _, ch in ipairs(chars) do
+    if ch:byte(1) == 0xE3 then -- kana (kanji start with a higher byte)
+      reads[#reads + 1] = "|cffffffff" .. ch .. "|r |cff80c0ff[" .. ns.KanaRomaji(ch) .. "]|r"
+    else
+      reads[#reads + 1] = "|cffffffff" .. ch .. "|r"
+    end
+  end
+  prompt:SetText("|cffff9933New sign!|r Write it in the window on the right first.")
+  sub:SetText(table.concat(reads, "   "))
+  feedback:SetText("|cff999999The question comes when you have written it. \"Skip\" goes straight to it.|r")
+  nextBtn:SetText("Skip  >")
+  local ok = ns.WriteIntro(chars, function()
+    if cur == q and q.intro and F:IsShown() then
+      q.intro = nil
+      ShowQuestion(q)
+      RedrawSoon()
+    end
+  end)
+  if not ok then
+    q.intro = nil
+    ShowQuestion(q)
+  end
+end
+
 function ns.QuizNext()
-  ShowQuestion(BuildQuestion())
+  local q = BuildQuestion()
+  local chars = ns.WriteIntro and NewSigns(q) or {}
+  if #chars > 0 then ShowIntro(q, chars) else ShowQuestion(q) end
   RedrawSoon()
 end
 
 function ns.QuizAnswer(i)
   local q = cur
-  if not q or q.answered then return end
+  if not q or q.answered or q.intro then return end
   q.answered = true
   local ok = (i == q.correct)
   local stats = q.kana and Q.kana or Q.words
@@ -697,6 +750,16 @@ sayBtn:SetScript("OnClick", function()
   if cur.kana then ns.SpeakKana(cur.target) else ns.Speak(cur.target) end
 end)
 nextBtn:SetScript("OnClick", function()
+  if cur and cur.intro then
+    -- Skip the writing: closing the writing window shows the question.
+    local q = cur
+    if ns.WritingIsShown() then _G.AzerothNihongoDraw:Hide() end
+    if cur == q and q.intro then
+      q.intro = nil
+      ShowQuestion(q)
+    end
+    return
+  end
   if popTotal and popDone >= popTotal then
     F:Hide()
   else
@@ -743,6 +806,10 @@ F:SetScript("OnShow", function()
 end)
 F:SetScript("OnHide", function()
   popTotal, popDone, practice, popMode = nil, nil, nil, nil
+  if cur and cur.intro then
+    cur.intro = nil
+    if ns.WritingIsShown and ns.WritingIsShown() then _G.AzerothNihongoDraw:Hide() end
+  end
   if ns.RefreshLexicon then ns.RefreshLexicon() end
 end)
 

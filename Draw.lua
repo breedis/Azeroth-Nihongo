@@ -345,6 +345,8 @@ local S = {
   strokeMisses = 0,  -- misses on the current stroke
   queue = nil,       -- { name =, list = {...}, i = } when writing a list
   last = nil,
+  intro = nil,       -- function(done) to call when the new signs from the quiz are written
+  pop = nil,         -- { total =, done = } during a writing pop quiz
 }
 local drawing, livePts, badUntil, anim = false, nil, nil, nil
 
@@ -446,7 +448,18 @@ local function SetStatus(msg) status:SetText(msg or "") end
 
 local modeBtn, setBtn
 
+local function UpdateTitle()
+  if S.intro then
+    title:SetText("|cffff9933New sign!|r  |cffccccccWrite it before the question|r")
+  elseif S.pop then
+    title:SetText(("|cffff9933Pop quiz!|r  書く  |cffcccccc%d / %d|r"):format(math.min(S.pop.done + 1, S.pop.total), S.pop.total))
+  else
+    title:SetText("書く  |cffccccccWriting practice|r")
+  end
+end
+
 local function UpdateButtons()
+  UpdateTitle()
   modeBtn:SetText("Mode: " .. MODE_LABEL[S.mode])
   if S.queue then
     setBtn:SetText(S.queue.name)
@@ -516,6 +529,50 @@ end
 
 local function Next() Start(PickNext()) end
 
+-- Ends the "write the new sign first" step and hands back to the quiz.
+local function EndIntro(done)
+  local cb = S.intro
+  if not cb then return end
+  S.intro, S.queue = nil, nil
+  S.mode = ns.DB.writeMode or "trace"
+  if W:IsShown() then W:Hide() end
+  cb(done)
+end
+
+-- Moves on after a character is finished (or skipped) in an intro or pop quiz.
+-- Returns true when it handled it.
+local function Advance(ch)
+  if S.intro then
+    local q = S.queue
+    if q and q.i < #q.list then
+      q.i = q.i + 1
+      Start(q.list[q.i])
+    else
+      EndIntro(true)
+    end
+    return true
+  end
+  if S.pop then
+    if S.pop.done >= S.pop.total then
+      W:Hide()
+    else
+      Next()
+    end
+    return true
+  end
+  return false
+end
+
+-- Calls Advance after a short pause, unless the player has moved on already.
+local function AdvanceSoon(delay)
+  local ch = S.ch
+  if C_Timer then
+    C_Timer.After(delay, function()
+      if W:IsShown() and S.ch == ch and not anim then Advance(ch) end
+    end)
+  end
+end
+
 local function Finish()
   local s = Stats(S.ch)
   local clean = S.misses == 0
@@ -530,6 +587,20 @@ local function Finish()
     if t then ns.SpeakKana(t) end
   end
   if ns.RefreshLexicon then ns.RefreshLexicon() end
+  if S.intro then
+    AdvanceSoon(1.2)
+    return
+  end
+  if S.pop then
+    S.pop.done = S.pop.done + 1
+    if S.pop.done >= S.pop.total then
+      SetStatus(status:GetText() .. "\n|cffff9933Pop quiz done!|r")
+      AdvanceSoon(2.5)
+    else
+      AdvanceSoon(1.5)
+    end
+    return
+  end
   if clean and ns.DB.quiz.autoNext and C_Timer then
     local ch = S.ch
     C_Timer.After(1.2, function() if W:IsShown() and S.ch == ch and not anim then Next() end end)
@@ -704,11 +775,18 @@ end)
 
 local nextBtn = Btn("Next", 100)
 nextBtn:SetPoint("LEFT", sayBtn, "RIGHT", 6, 0)
-nextBtn:SetScript("OnClick", Next)
+nextBtn:SetScript("OnClick", function()
+  local finished = S.data and S.done >= #S.data.strokes
+  -- Skipping a character in a pop quiz still counts it as one of the questions.
+  if S.pop and not finished then S.pop.done = S.pop.done + 1 end
+  if not Advance(S.ch) then Next() end
+end)
 
 W:SetScript("OnHide", function()
   drawing, livePts, anim = false, nil, nil
   Clear(livePool)
+  S.pop = nil
+  if S.intro then EndIntro(false) end
 end)
 
 ---------------------------------------------------------------------------
@@ -725,7 +803,9 @@ end
 
 -- Write one character, or each writable character of a word in turn.
 function ns.WriteChar(text)
+  if S.intro then EndIntro(false) end
   if not Open() then return end
+  S.pop = nil
   local list = {}
   for _, ch in ipairs(Chars(text or "")) do
     if ns.CanWrite(ch) then list[#list + 1] = ch end
@@ -737,7 +817,9 @@ end
 
 -- Write a list in order (e.g. a lexicon page), starting at first if given.
 function ns.StartWriting(name, items, first)
+  if S.intro then EndIntro(false) end
   if not Open() then return end
+  S.pop = nil
   local list, seen, start = {}, {}, 1
   for _, item in ipairs(items) do
     for _, ch in ipairs(Chars(item)) do
@@ -753,9 +835,43 @@ function ns.StartWriting(name, items, first)
   Start(list[start])
 end
 
+-- Before the quiz asks about signs for the first time: write them, in trace mode,
+-- in a window next to the quiz. onDone(true) when written, onDone(false) if closed.
+function ns.WriteIntro(chars, onDone)
+  if S.intro then EndIntro(false) end
+  if not Open() then return false end
+  local list = {}
+  for _, ch in ipairs(chars) do if ns.CanWrite(ch) then list[#list + 1] = ch end end
+  if #list == 0 then return false end
+  S.pop, S.intro = nil, onDone
+  S.mode = "trace"
+  S.queue = { name = "New signs", list = list, i = 1 }
+  local quiz = _G.AzerothNihongoQuiz
+  if quiz and quiz:IsShown() then
+    W:ClearAllPoints()
+    W:SetPoint("TOPLEFT", quiz, "TOPRIGHT", 8, 0)
+  end
+  Start(list[1])
+  return true
+end
+
+function ns.WritingIsShown() return W:IsShown() end
+
+-- Pop quiz that asks you to write n characters from the "Next from" set.
+function ns.StartPopWriting(n)
+  if not ns.DB or W:IsShown() then return false end
+  Open()
+  S.intro, S.queue = nil, nil
+  S.pop = { total = n, done = 0 }
+  Next()
+  return true
+end
+
 function ns.ToggleWriting(set)
   if W:IsShown() and not set then W:Hide() return end
   if not Open() then return end
+  if S.intro then EndIntro(false) Open() end
+  S.pop = nil
   if set then S.set, S.queue = set, nil; ns.DB.writeSet = set end
   if set or not S.ch then Next() else UpdateButtons() end
 end

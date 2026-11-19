@@ -60,7 +60,14 @@ function ns.PopQuiz(reason)
     return true
   end
   if ns.QuizIsShown and ns.QuizIsShown() then return false end
-  if ns.StartPopQuiz(P().questions) then
+  if ns.WritingIsShown and ns.WritingIsShown() then return false end
+  local started
+  if P().kind == "write" and ns.StartPopWriting then
+    started = ns.StartPopWriting(P().questions)
+  else
+    started = ns.StartPopQuiz(P().questions)
+  end
+  if started then
     lastPop = now
     PlaySoundSafe()
     return true
@@ -131,6 +138,7 @@ end)
 local panel = CreateFrame("Frame")
 panel.name = "Pop quiz"
 panel.parent = "Azeroth Nihongo"
+panel:Hide() -- so OnShow runs the first time the settings show it
 
 local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
 title:SetPoint("TOPLEFT", 16, -16)
@@ -204,11 +212,12 @@ Stepper("questions", "Questions per pop quiz", 1, 20, 1, Number)
 
 -- What a pop quiz asks
 do
-  local KINDS = { "quiz", "kana", "both" }
+  local KINDS = { "quiz", "kana", "both", "write" }
   local KIND_NAME = {
     quiz = "Same as the quiz window",
     kana = "Kana only (hiragana practice)",
     both = "Kana and quiz mode mixed",
+    write = "Writing (draw the signs)",
   }
   local fs = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
   fs:SetPoint("TOPLEFT", 22, y - 4)
@@ -228,7 +237,10 @@ do
   y = y - 30
   local note = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
   note:SetPoint("TOPLEFT", 22, y)
-  note:SetText("Kana pop quizzes use the kana settings from the quiz (hiragana/katakana, dakuten, combos).")
+  note:SetText("Kana pop quizzes use the kana settings from the quiz (hiragana/katakana, dakuten, combos).\n"
+    .. "Writing pop quizzes use \"Next from\" and the mode of the writing window (/jp draw).")
+  note:SetJustifyH("LEFT")
+  y = y - 12
   y = y - 18
 end
 y = y - 8

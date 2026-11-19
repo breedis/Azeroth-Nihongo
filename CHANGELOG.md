@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.10.0
+- New signs are written first: when the quiz is about to ask a kana you have never
+  met, the writing window opens next to it (trace mode) and the question comes once
+  you have written it. "Skip" goes straight to the question. The same can be turned
+  on for the kanji of new words. Both are in the options.
+- Pop quiz can ask you to write: "Pop quiz asks" has a new choice, "Writing". It uses
+  the set and mode of the writing window.
+- Fixed the settings pages being empty the first time they were opened after login
+  or /reload.
+
 ## 1.9.1
 - Fixed kana showing as boxes on the quiz buttons, mostly in the first pop quiz after
   starting the game. The font is now loaded at login, the buttons keep it when they

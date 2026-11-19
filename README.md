@@ -35,7 +35,7 @@ materials, places and spells of the game.
   - a kana chart with notes and example words;
   - every kanji with its readings and words;
   - your words sorted into right, wrong and undiscovered, with practice for any list.
-- **Writing practice:** draw kana and kanji with the mouse, stroke by stroke, like on a practice sheet: grey strokes with a number where each one starts. Every stroke is checked for its place, shape, direction and order. Trace, hints only or from memory (`/jp draw`, or "Write" in the lexicon).
+- **Writing practice:** draw kana and kanji with the mouse, stroke by stroke, like on a practice sheet: grey strokes with a number where each one starts. Every stroke is checked for its place, shape, direction and order. Trace, hints only or from memory (`/jp draw`, or "Write" in the lexicon). New kana are written once before the quiz first asks them, and pop quizzes can ask you to write.
 - **Untranslated words:** names with words the dictionary does not know are noted, so they can be added later (`/jp missing`).
 - **Pronunciation:** uses the Japanese text-to-speech voice in Windows, if you have one installed.
 

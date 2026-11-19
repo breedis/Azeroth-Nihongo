@@ -1,7 +1,7 @@
 # Azeroth Nihongo – projektanteckningar
 
 Egna anteckningar om projektet (följer inte med i CurseForge-zippen).
-Senast uppdaterad: 2026-11-18, version 1.9.1.
+Senast uppdaterad: 2026-11-18, version 1.10.0.
 
 ## Vad addonen är
 WoW-addon för att öva japanska medan man spelar. Hovra över mobs, NPC:er, föremål,

@@ -44,6 +44,8 @@ local DEFAULTS = {
     kanaSet = "hira",      -- kana quiz: "hira", "kata" or "both"
     kanaDakuten = true,    -- kana quiz: include が, ぱ ...
     kanaCombos = false,    -- kana quiz: include きゃ, しゃ ...
+    writeNewKana = true,   -- write a kana in the writing window before it is first asked
+    writeNewKanji = false, -- same for the kanji of a word before the word is first asked
   },
   pop = {
     enabled = true,        -- timed pop quizzes
@@ -55,7 +57,7 @@ local DEFAULTS = {
     questChance = 50,      -- percent
     onLevel = true,        -- pop after levelling up
     noInstance = true,     -- no pop quiz in dungeons, raids, battlegrounds or arenas
-    kind = "quiz",         -- what a pop quiz asks: "quiz" (same as the quiz window), "kana" or "both"
+    kind = "quiz",         -- what a pop quiz asks: "quiz" (same as the quiz window), "kana", "both" or "write"
     sound = true,
   },
 }
