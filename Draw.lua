@@ -354,11 +354,68 @@ printChar:SetPoint("CENTER", 0, 0)
 local handBox = CompareBox("RIGHT", "Handwritten", "how you\nwrite it")
 local handPool = NewPool(0, handBox, CMP / BOX)
 
+-- Kana with dakuten (゛) or handakuten (゜): the plain kana they are made from.
+local KANA_BASE = {}
+do
+  local function Chars(s)
+    local t = {}
+    for c in s:gmatch("[%z\1-\127\194-\244][\128-\191]*") do t[#t + 1] = c end
+    return t
+  end
+  local function Add(marked, plain, mark)
+    local a, b = Chars(marked), Chars(plain)
+    for i = 1, #a do KANA_BASE[a[i]] = { base = b[i], mark = mark } end
+  end
+  Add("がぎぐげござじずぜぞだぢづでどばびぶべぼゔ", "かきくけこさしすせそたちつてとはひふへほう", "dakuten")
+  Add("ガギグゲゴザジズゼゾダヂヅデドバビブベボヴ", "カキクケコサシスセソタチツテトハヒフヘホウ", "dakuten")
+  Add("ぱぴぷぺぽ", "はひふへほ", "handakuten")
+  Add("パピプペポ", "ハヒフヘホ", "handakuten")
+end
+ns.KANA_BASE = KANA_BASE
+
+-- Below "Print": the plain kana a ゛/゜ sign is made from.
+local baseBox = CreateFrame("Frame", nil, W)
+baseBox:SetSize(CMP, CMP)
+baseBox:SetPoint("TOP", printBox, "BOTTOM", 0, -48)
+do
+  local bg = baseBox:CreateTexture(nil, "BACKGROUND")
+  bg:SetAllPoints()
+  bg:SetColorTexture(0.08, 0.07, 0.06, 0.92)
+end
+local baseLabel = Text(baseBox, 11, "CENTER")
+baseLabel:SetPoint("BOTTOM", baseBox, "TOP", 0, 4)
+baseLabel:SetWidth(CMP + 16)
+baseLabel:SetText("|cffffd100Made from|r")
+local baseChar = Text(baseBox, 40, "CENTER")
+baseChar:SetPoint("CENTER", 0, 6)
+local baseRomaji = Text(baseBox, 11, "CENTER")
+baseRomaji:SetPoint("BOTTOM", 0, 5)
+local baseNote = Text(baseBox, 10, "CENTER")
+baseNote:SetPoint("TOP", baseBox, "BOTTOM", 0, -4)
+baseNote:SetWidth(CMP + 24)
+baseBox:Hide()
+
 local function ShowCompare(ch, data)
   Clear(handPool)
-  if not ch or not data then printBox:Hide(); handBox:Hide(); return end
+  if not ch or not data then printBox:Hide(); handBox:Hide(); baseBox:Hide(); return end
   printChar:SetText("|cffffffff" .. ch .. "|r")
-  for _, st in ipairs(data.strokes) do Stroke(handPool, st, 4, COLOR.ink) end
+  local b = KANA_BASE[ch]
+  -- The added marks are the last strokes: 2 for ゛, 1 for ゜. Shown in gold.
+  local marks = b and (b.mark == "dakuten" and 2 or 1) or 0
+  local n = #data.strokes
+  for i, st in ipairs(data.strokes) do
+    Stroke(handPool, st, 4, i > n - marks and COLOR.pen or COLOR.ink)
+  end
+  if b then
+    baseChar:SetText("|cffffffff" .. b.base .. "|r")
+    baseRomaji:SetText("|cff80c0ff[" .. (ns.KanaRomaji(b.base) or "") .. "]|r")
+    baseNote:SetText(b.mark == "dakuten"
+      and "|cff999999+ |cffffd100゛|r dakuten\n(2 small strokes)|r"
+      or "|cff999999+ |cffffd100゜|r handakuten\n(a small circle)|r")
+    baseBox:Show()
+  else
+    baseBox:Hide()
+  end
   printBox:Show(); handBox:Show()
 end
 

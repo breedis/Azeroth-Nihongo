@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.10.2
+- Signs with dakuten or handakuten (ざ, ぱ, ガ ...) show the plain kana they are made
+  from ("Made from さ [sa] + ゛"), and the added marks are drawn in gold in the
+  handwritten preview.
+
 ## 1.10.1
 - The writing window shows each sign twice: printed (the font) and handwritten (drawn
   from the strokes). Some signs look different in print, e.g. り, さ, き, そ and ふ.
