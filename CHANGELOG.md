@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.10.1
+- The writing window shows each sign twice: printed (the font) and handwritten (drawn
+  from the strokes). Some signs look different in print, e.g. り, さ, き, そ and ふ.
+
 ## 1.10.0
 - New signs are written first: when the quiz is about to ask a kana you have never
   met, the writing window opens next to it (trace mode) and the question comes once

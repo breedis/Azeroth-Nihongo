@@ -182,7 +182,7 @@ ns.StrokeFits, ns.StrokeVerdict = Fits, Verdict -- for tests
 ---------------------------------------------------------------------------
 local W = CreateFrame("Frame", "AzerothNihongoDraw", UIParent,
   BackdropTemplateMixin and "BackdropTemplate" or nil)
-W:SetSize(420, 560)
+W:SetSize(500, 560)
 W:SetPoint("CENTER", 0, 40)
 W:SetFrameStrata("DIALOG")
 W:SetClampedToScreen(true)
@@ -261,40 +261,42 @@ help:SetWidth(380)
 ---------------------------------------------------------------------------
 local HAS_LINE = canvas.CreateLine ~= nil
 
-local function NewPool(sublevel)
-  return { lines = {}, dots = {}, nl = 0, nd = 0, sub = sublevel }
+-- frame/px: where the pool draws and how many pixels one box unit is (default: the canvas)
+local function NewPool(sublevel, frame, px)
+  return { lines = {}, dots = {}, nl = 0, nd = 0, sub = sublevel, frame = frame or canvas, px = px or PX }
 end
 
 local function Dot(pool, x, y, size, c)
   pool.nd = pool.nd + 1
   local t = pool.dots[pool.nd]
   if not t then
-    t = canvas:CreateTexture(nil, "ARTWORK", nil, pool.sub)
+    t = pool.frame:CreateTexture(nil, "ARTWORK", nil, pool.sub)
     t:SetTexture(CIRCLE)
     pool.dots[pool.nd] = t
   end
   t:SetVertexColor(c[1], c[2], c[3], c[4])
   t:SetSize(size, size)
   t:ClearAllPoints()
-  t:SetPoint("CENTER", canvas, "TOPLEFT", x, -y)
+  t:SetPoint("CENTER", pool.frame, "TOPLEFT", x, -y)
   t:Show()
 end
 
 -- A segment between two points in box units.
 local function Seg(pool, a, b, thick, c)
-  local x1, y1, x2, y2 = a[1] * PX, a[2] * PX, b[1] * PX, b[2] * PX
+  local px = pool.px
+  local x1, y1, x2, y2 = a[1] * px, a[2] * px, b[1] * px, b[2] * px
   if HAS_LINE then
     pool.nl = pool.nl + 1
     local l = pool.lines[pool.nl]
     if not l then
-      l = canvas:CreateLine(nil, "ARTWORK", nil, pool.sub)
+      l = pool.frame:CreateLine(nil, "ARTWORK", nil, pool.sub)
       l:SetTexture(WHITE)
       pool.lines[pool.nl] = l
     end
     l:SetVertexColor(c[1], c[2], c[3], c[4])
     l:SetThickness(thick)
-    l:SetStartPoint("TOPLEFT", canvas, x1, -y1)
-    l:SetEndPoint("TOPLEFT", canvas, x2, -y2)
+    l:SetStartPoint("TOPLEFT", pool.frame, x1, -y1)
+    l:SetEndPoint("TOPLEFT", pool.frame, x2, -y2)
     l:Show()
     Dot(pool, x2, y2, thick, c) -- round joint
   else
@@ -309,7 +311,7 @@ end
 
 local function Stroke(pool, pts, thick, c, upto)
   if #pts == 0 then return end
-  Dot(pool, pts[1][1] * PX, pts[1][2] * PX, thick, c)
+  Dot(pool, pts[1][1] * pool.px, pts[1][2] * pool.px, thick, c)
   for i = 2, upto or #pts do Seg(pool, pts[i - 1], pts[i], thick, c) end
 end
 
@@ -320,6 +322,45 @@ local function Clear(pool)
 end
 
 local guidePool, inkPool, livePool = NewPool(0), NewPool(2), NewPool(4)
+
+-- Print vs handwriting: the font shows the printed form, the strokes the handwritten
+-- one. Some signs look different (り, さ, き, そ, ふ ...), so both are shown side by side.
+local CMP = 76
+local function CompareBox(side, label, note)
+  local f = CreateFrame("Frame", nil, W)
+  f:SetSize(CMP, CMP)
+  if side == "LEFT" then
+    f:SetPoint("TOPRIGHT", canvas, "TOPLEFT", -10, -20)
+  else
+    f:SetPoint("TOPLEFT", canvas, "TOPRIGHT", 10, -20)
+  end
+  local bg = f:CreateTexture(nil, "BACKGROUND")
+  bg:SetAllPoints()
+  bg:SetColorTexture(0.08, 0.07, 0.06, 0.92)
+  local l = Text(f, 11, "CENTER")
+  l:SetPoint("BOTTOM", f, "TOP", 0, 4)
+  l:SetWidth(CMP + 16)
+  l:SetText("|cffffd100" .. label .. "|r")
+  local n = Text(f, 10, "CENTER")
+  n:SetPoint("TOP", f, "BOTTOM", 0, -4)
+  n:SetWidth(CMP + 16)
+  n:SetText("|cff999999" .. note .. "|r")
+  f:Hide()
+  return f
+end
+local printBox = CompareBox("LEFT", "Print", "books, signs\nand this font")
+local printChar = Text(printBox, 56, "CENTER")
+printChar:SetPoint("CENTER", 0, 0)
+local handBox = CompareBox("RIGHT", "Handwritten", "how you\nwrite it")
+local handPool = NewPool(0, handBox, CMP / BOX)
+
+local function ShowCompare(ch, data)
+  Clear(handPool)
+  if not ch or not data then printBox:Hide(); handBox:Hide(); return end
+  printChar:SetText("|cffffffff" .. ch .. "|r")
+  for _, st in ipairs(data.strokes) do Stroke(handPool, st, 4, COLOR.ink) end
+  printBox:Show(); handBox:Show()
+end
 
 local numLabels = {}
 local function NumLabel(i)
@@ -393,8 +434,9 @@ end
 
 local function Prompt()
   local ch = S.ch
-  if not ch then prompt:SetText("") sub:SetText("") return end
+  if not ch then prompt:SetText("") sub:SetText("") ShowCompare(nil) return end
   local showChar = S.mode ~= "memory" or S.done >= #S.data.strokes
+  ShowCompare(showChar and ch, S.data)
   if IsKanji(ch) then
     local reads = {}
     for i, r in ipairs(ns.KanjiReadings(ch) or {}) do
@@ -728,7 +770,7 @@ local function Btn(label, w)
 end
 
 modeBtn = Btn("Mode", 150)
-modeBtn:SetPoint("BOTTOMLEFT", 22, 46)
+modeBtn:SetPoint("BOTTOMLEFT", 62, 46)
 modeBtn:SetScript("OnClick", function()
   for i, m in ipairs(MODES) do
     if m == S.mode then S.mode = MODES[i % #MODES + 1] break end
@@ -753,7 +795,7 @@ againBtn:SetPoint("LEFT", animBtn, "RIGHT", 6, 0)
 againBtn:SetScript("OnClick", function() if S.ch then Start(S.ch) end end)
 
 setBtn = Btn("", 150)
-setBtn:SetPoint("BOTTOMLEFT", 22, 18)
+setBtn:SetPoint("BOTTOMLEFT", 62, 18)
 setBtn:SetScript("OnClick", function()
   if S.queue then
     S.queue = nil

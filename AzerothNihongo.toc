@@ -1,7 +1,7 @@
 ## Interface: 16001, 120105, 120100, 50504, 20506, 11509
 ## Title: Azeroth Nihongo
 ## Notes: Learn Japanese while you play: hover over anything to see its name in kanji, kana and romaji. With quizzes, writing practice, a kana chart and pronunciation.
-## Version: 1.10.0
+## Version: 1.10.1
 ## SavedVariables: AzerothNihongoDB
 ## X-Category: Miscellaneous
 ## X-License: See LICENSE.txt (font: Fonts/IPA_Font_License_Agreement_v1.0.txt)
