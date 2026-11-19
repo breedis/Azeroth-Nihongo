@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.9.1
+- Fixed kana showing as boxes on the quiz buttons, mostly in the first pop quiz after
+  starting the game. The font is now loaded at login, the buttons keep it when they
+  are shown or hovered, and the quiz draws its text again a moment after each question.
+
 ## 1.9.0
 - Writing practice: draw kana and kanji with the mouse, stroke by stroke. The box
   shows the strokes in grey with a number where each one starts. Every stroke is

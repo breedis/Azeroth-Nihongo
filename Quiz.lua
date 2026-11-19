@@ -118,11 +118,64 @@ local function JPFont(fs, size)
   if fs:SetFont(path, size, "") == false then fs:SetFont(DEFAULT_FONT, size, "") end
 end
 
+-- Answer buttons get the Japanese font through font objects. A button puts its own
+-- font objects back on its text when it is shown or hovered, which used to undo
+-- SetFont and show kana as boxes.
+local fontObjs = {}
+local function JPFontObject(size)
+  local o = fontObjs[size]
+  if not o then
+    o = CreateFont("AzerothNihongoQuizFont" .. size)
+    fontObjs[size] = o
+  end
+  local path = ns.fontPath or DEFAULT_FONT
+  if o:SetFont(path, size, "") == false then o:SetFont(DEFAULT_FONT, size, "") end
+  o:SetTextColor(1, 0.82, 0)
+  return o
+end
+
+local function ButtonFont(b, size)
+  b.jpSize = size
+  local o = JPFontObject(size)
+  b:SetNormalFontObject(o)
+  b:SetHighlightFontObject(o)
+  b:SetDisabledFontObject(o)
+  JPFont(b:GetFontString(), size)
+end
+
 local function ApplyFonts()
   for _, fs in ipairs({ title, itemName, question, sub, feedback }) do
     JPFont(fs, fs.jpSize)
   end
-  for _, b in ipairs(answers) do JPFont(b:GetFontString(), 15) end
+  for _, b in ipairs(answers) do ButtonFont(b, 15) end
+end
+
+-- The first time a font file is used after login the game may still be loading it,
+-- and text drawn before that shows as boxes. Setting the font and text again a moment
+-- later draws it properly.
+local function Redraw()
+  if not F:IsShown() then return end
+  for _, fs in ipairs({ title, itemName, question, sub, feedback }) do
+    JPFont(fs, fs.jpSize)
+    local t = fs:GetText()
+    if t then fs:SetText(t) end
+  end
+  for _, b in ipairs(answers) do
+    if b:IsShown() then
+      local fs = b:GetFontString()
+      local r, g, bl = fs:GetTextColor()
+      ButtonFont(b, b.jpSize or 15)
+      local t = b:GetText()
+      if t then b:SetText(t) end
+      fs:SetTextColor(r, g, bl)
+    end
+  end
+end
+local function RedrawSoon()
+  if C_Timer then
+    C_Timer.After(0.1, Redraw)
+    C_Timer.After(0.6, Redraw)
+  end
 end
 
 ---------------------------------------------------------------------------
@@ -492,7 +545,7 @@ local function ShowQuestion(q)
       local k = q.options[i]
       if k then
         b:SetText(q.dir == "jp" and ns.KanaRomaji(k) or k)
-        JPFont(b:GetFontString(), q.dir == "jp" and 16 or 24)
+        ButtonFont(b, q.dir == "jp" and 16 or 24)
         b:GetFontString():SetTextColor(1, 0.82, 0)
         b:Show()
       else
@@ -539,6 +592,7 @@ end
 
 function ns.QuizNext()
   ShowQuestion(BuildQuestion())
+  RedrawSoon()
 end
 
 function ns.QuizAnswer(i)

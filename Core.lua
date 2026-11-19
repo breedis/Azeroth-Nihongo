@@ -125,6 +125,29 @@ function ns.ApplyFont()
   ns.fontIdx, ns.fontPath = nil, nil
 end
 
+-- Draws some Japanese text with the font at login, out of sight, so the font file is
+-- loaded before the first quiz or popup needs it.
+local preload
+function ns.PreloadFont()
+  if not ns.fontPath then return end
+  if not preload then
+    preload = CreateFrame("Frame", nil, UIParent)
+    preload:SetSize(1, 1)
+    preload:SetPoint("TOPLEFT", UIParent, "BOTTOMRIGHT", 100, -100)
+    preload:SetAlpha(0.01)
+    preload.texts = {}
+  end
+  for i, size in ipairs({ 12, 13, 15, 16, 18, 20, 24, 40, DB.fontSize }) do
+    local fs = preload.texts[i] or preload:CreateFontString(nil, "OVERLAY")
+    preload.texts[i] = fs
+    fs:SetFont(ns.fontPath, size, "")
+    fs:SetPoint("TOPLEFT", 0, -i * 30)
+    fs:SetText("あいうえお アイウエオ ガギグ 日本語 漢字 ー")
+  end
+  preload:Show()
+  if C_Timer then C_Timer.After(5, function() preload:Hide() end) end
+end
+
 function ns.CycleFont()
   DB.fontIndex = ((ns.fontIdx or 1) % #FONTS) + 1
   ns.ApplyFont()
@@ -672,6 +695,7 @@ events:SetScript("OnEvent", function(self, _, name)
   end
   ns.DB = DB
   ns.ApplyFont()
+  ns.PreloadFont()
   if not ns.fontIdx or ns.fontIdx > 2 then
     Print("|cffff8080Japanese font not found|r - some characters may show as boxes. "
       .. "Quit the game completely and start it again (/reload does not pick up new files).")
