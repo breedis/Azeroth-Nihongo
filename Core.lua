@@ -696,15 +696,20 @@ events:SetScript("OnEvent", function(self, _, name)
     DB.fontIndex = 1
   end
   ns.DB = DB
-  ns.ApplyFont()
-  ns.PreloadFont()
+  -- Each step on its own, so one that fails cannot take the button or the options with it.
+  local function Try(what, f)
+    local ok, err = pcall(f)
+    if not ok then Print("|cffff8080error in " .. what .. ":|r " .. tostring(err)) end
+  end
+  Try("font", ns.ApplyFont)
+  Try("button", CreateButton)
+  Try("options", function() if ns.RegisterOptions then ns.RegisterOptions() end end)
+  Try("font preload", ns.PreloadFont)
+  Try("untranslated words", function() if ns.MissingLoaded then ns.MissingLoaded() end end)
   if not ns.fontIdx or ns.fontIdx > 2 then
     Print("|cffff8080Japanese font not found|r - some characters may show as boxes. "
       .. "Quit the game completely and start it again (/reload does not pick up new files).")
   end
-  CreateButton()
-  if ns.RegisterOptions then ns.RegisterOptions() end
-  if ns.MissingLoaded then ns.MissingLoaded() end
 end)
 
 ---------------------------------------------------------------------------
@@ -732,6 +737,11 @@ SlashCmdList.AZEROTHNIHONGO = function(msg)
     ns.Toggle()
   elseif cmd == "on" or cmd == "off" then
     DB.enabled = (cmd == "on"); ns.Refresh(); Print(OnOff(DB.enabled))
+  elseif cmd == "button" and arg == "reset" then
+    DB.showButton = true
+    ns.ResetButton()
+    ns.Refresh()
+    Print("JP button shown, back in the middle near the top of the screen.")
   elseif TOGGLES[cmd] then
     local key, label = TOGGLES[cmd][1], TOGGLES[cmd][2]
     DB[key] = not DB[key]; ns.Refresh()
@@ -808,7 +818,7 @@ SlashCmdList.AZEROTHNIHONGO = function(msg)
     Print("/jp pop - pop quiz now  |  /jp pop on|off|status - the timer")
     Print("/jp draw - writing practice  |  /jp draw hira|kata|kanji  |  /jp draw あ  |  /jp draw wolf")
     Print("/jp missing - words seen that have no translation yet")
-    Print("/jp button - show/hide the button")
+    Print("/jp button - show/hide the button,  /jp button reset - show it and move it back")
     Print("/jp config - options")
   end
 end

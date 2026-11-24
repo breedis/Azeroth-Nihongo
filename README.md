@@ -78,7 +78,7 @@ You can set keys for all of this under Key Bindings → AddOns → Azeroth Nihon
 | `/jp lex` · `/jp chart` · `/jp kanjilist` · `/jp words` | lexicon and its tabs |
 | `/jp draw` · `/jp draw hira\|kata\|kanji` · `/jp draw 狼` · `/jp draw wolf` | writing practice |
 | `/jp missing` | words you have seen that have no translation yet |
-| `/jp button` | show/hide the JP button |
+| `/jp button` · `/jp button reset` | show/hide the JP button · show it and move it back to the top middle |
 | `/jp config` | options |
 
 ## Pronunciation

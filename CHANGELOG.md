@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.10.3
+- The JP button and the options are set up first at login, so a problem in another
+  part of the addon can no longer hide them. Such a problem is now shown in the chat.
+- `/jp button reset` shows the JP button again and moves it back to the top middle.
+
 ## 1.10.2
 - Signs with dakuten or handakuten (ざ, ぱ, ガ ...) show the plain kana they are made
   from ("Made from さ [sa] + ゛"), and the added marks are drawn in gold in the
